@@ -47,8 +47,7 @@ export default class ProductCard {
         button.classList.add('card__button');
         cardImage.setAttribute('type', 'button');
         divCardBody.append(button);
-
-
+        
         button.addEventListener("click", (event) => {
             event.target.dispatchEvent(new CustomEvent("product-add", {
                 detail: this.id,
