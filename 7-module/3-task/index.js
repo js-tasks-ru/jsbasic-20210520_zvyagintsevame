@@ -4,98 +4,76 @@ export default class StepSlider {
     this.elem.classList.add('slider');
 
     this.steps = steps;
+    this.segments = this.steps - 1;
     this.value = value;
+    
+    this._changeValue = this._changeValue.bind(this)
 
     this._initStepSlider()
   }
 
   _initStepSlider() {
-    this._createStepSlider();
-    this._changeValue();
-  }
+    this.elem.insertAdjacentHTML('beforeend', this._createStepSliderTemplate());
 
-  _createStepSlider() {
-    this.elem.insertAdjacentHTML('beforeend', this._createStepSliderTamplete());
-    this._createSteps()
-  }
-
-  _createStepSliderTamplete() {
-    const StepSliderTamplete = `<div class="slider__thumb" style="left: 50%;">
-    <span class="slider__value">2</span>
-  </div>
-
-  <!--Заполненная часть слайдера-->
-  <div class="slider__progress" style="width: 50%;"></div>
-
-  <!--Шаги слайдера-->
-  <div class="slider__steps">
-  </div>`
-
-    return StepSliderTamplete;
-  }
-
-  _createSteps() {
     const sliderSteps = this.elem.querySelector('.slider__steps');
+    sliderSteps.children[this.value].classList.add('slider__step-active');
 
-    for (let i = 0; i < this.steps; i++) {
-      const steps = document.createElement('span');
+    this._addHandler();
+  }
 
-      sliderSteps.append(steps);
-      sliderSteps.children[0].classList.add('slider__step-active');
+  _createStepSliderTemplate() {
+    const StepSliderTemplate = `
+    <div class="slider__thumb" style="left: ${this._calculatePosition()}%">
+      <span class="slider__value">${this.value}</span>
+    </div>
+
+    <!--Заполненная часть слайдера-->
+    <div class="slider__progress" style="width: ${this._calculatePosition()}%"></div>
+
+    <!--Шаги слайдера-->
+    <div class="slider__steps">
+      ${'<span></span>'.repeat(this.steps)}
+    </div>`
+
+    return StepSliderTemplate;
+  }
+
+  _calculatePosition() {
+    const segmentWidth = 100 / this.segments;
+
+    return segmentWidth * this.value;
+  };
+
+  _changeValue(event) {
+    const left = event.clientX - this.elem.getBoundingClientRect().left; // расстояние в пикселях от начала слайдера до места клика
+    const leftRelative = left / this.elem.offsetWidth; // относительное значение от 0 до 1
+    const currentValue = Math.round(leftRelative * this.segments); // конкретное значение слайдера
+    this.value = currentValue;
+    
+    const sliderValueElement = document.querySelector('.slider__value');
+    sliderValueElement.textContent = currentValue;
+
+    const sliderSteps = document.querySelector('.slider__steps').children;
+
+    for (let i = 0; i < sliderSteps.length; i++) {
+      sliderSteps[i].classList.remove('slider__step-active');
     }
 
-    return sliderSteps;
+    sliderSteps[currentValue].classList.add('slider__step-active');
+
+    const progress = document.querySelector('.slider__progress');
+    const thumb = document.querySelector('.slider__thumb');
+
+    progress.setAttribute('style', `width: ${this._calculatePosition()}%`);
+    thumb.setAttribute('style', `left: ${this._calculatePosition()}%`);
+
+    this.elem.dispatchEvent(new CustomEvent("slider-change", {
+      detail: this.value,
+      bubbles: true,
+    }))
   }
 
-  _changeValue() {
-    const steps = this.elem.querySelector('.slider__steps');
-    const value = this.elem.querySelector('.slider__value');
-    const thumb = this.elem.querySelector('.slider__thumb');
-    const progress = this.elem.querySelector('.slider__progress');
-
-    this.elem.addEventListener('click', (event) => {
-      const left = event.clientX - this.elem.getBoundingClientRect().left; // расстояние в пикселях от начала слайдера до места клика
-      const leftRelative = left / this.elem.offsetWidth; // относительное значение
-      const segments = this.steps - 1;
-      const approximateValue = leftRelative * segments;
-      const currentValue = Math.round(approximateValue);
-
-      value.textContent = currentValue;
-
-      for (let i = 0; i < steps.children.length; i++) {
-        steps.children[i].classList.remove('slider__step-active');
-      }
-
-      const step = steps.children[currentValue];
-      step.classList.add('slider__step-active');
-
-      switch (currentValue) {
-        case 0:
-          thumb.setAttribute('style', `left: ${0}%;`);
-          progress.setAttribute('style', `width: ${0}%;`);
-          break;
-        case 1:
-          thumb.setAttribute('style', `left: ${25}%;`);
-          progress.setAttribute('style', `width: ${25}%;`);
-          break;
-        case 2:
-          thumb.setAttribute('style', `left: ${50}%;`);
-          progress.setAttribute('style', `width: ${50}%;`);
-          break;
-        case 3:
-          thumb.setAttribute('style', `left: ${75}%;`);
-          progress.setAttribute('style', `width: ${75}%;`);
-          break;
-        case 4:
-          thumb.setAttribute('style', `left: ${100}%;`);
-          progress.setAttribute('style', `width: ${100}%;`);
-          break;
-      }
-
-      this.elem.dispatchEvent(new CustomEvent("slider-change", {
-        detail: this.value,
-        bubbles: true,
-      }))
-    })
+  _addHandler() {
+    this.elem.addEventListener('click', this._changeValue);
   }
 }
